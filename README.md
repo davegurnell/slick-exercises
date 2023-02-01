@@ -9,11 +9,13 @@ Licensed [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
 There are two Scala projects in this repository:
 
-- example - A small example app that connects to an H2 in-memory database.
+- `example` - A small example app that connects to an H2 in-memory database.
 
-- exercise - An almost-empty project that connects to a MySQL database.
+- `exercise` - An almost-empty project that connects to a MySQL database.
   Most exercises in the course will involve writing code here
   to query and update this database.
+
+### Docker
 
 The `exercise` project uses Docker to ensure a consistent environment.
 There is a `docker-compose.yml` file that configures two containers:
@@ -30,6 +32,8 @@ There is a `docker-compose.yml` file that configures two containers:
   - Has a database called `employees`.
   - Has two users - `dbuser` and `root` - both with the password `password`.
   - Has `/var/lib/mysql` mapped to `./mysql/docker-data` so your data is persisted between runs.
+
+### Sample Data
 
 I've included a load of sample data from
 [a dummy employee database](https://github.com/datacharmer/test_db) in `./sample-data`.
