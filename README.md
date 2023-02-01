@@ -1,7 +1,9 @@
 # Slick Exercises
 
-This repo contains examples and exercises for
+Examples and exercises for
 [Essential Slick](https://underscore.io/training/courses/essential-slick).
+
+Licensed [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
 ## Overview
 
