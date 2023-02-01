@@ -1,7 +1,7 @@
 .bash_history
 .mysql_history
 .idea/
-mysql-data/
+mysql/docker-data/
 
 # Created by https://www.toptal.com/developers/gitignore/api/scala,ensime,intellij,eclipse,sbt,sublimetext,emacs,vim,visualstudiocode,metals,bloop,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=scala,ensime,intellij,eclipse,sbt,sublimetext,emacs,vim,visualstudiocode,metals,bloop,visualstudiocode
