@@ -1,4 +1,4 @@
-name := "essential-slick"
+name := "slick-exercises"
 
 version := "1.0"
 
