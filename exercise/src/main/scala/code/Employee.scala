@@ -6,7 +6,7 @@ case class Employee(
   birthDate: LocalDate,
   firstName: String,
   lastName: String,
-  gender: Char,
+  gender: Gender,
   hireDate: LocalDate,
-  employeeNumber: Int = -1,
+  employeeNumber: EmployeeNumber = EmployeeNumber(-1),
 )

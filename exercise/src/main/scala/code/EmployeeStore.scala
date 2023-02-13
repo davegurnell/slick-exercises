@@ -1,21 +1,32 @@
 package code
 
+import enumeratum._
+import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
-import slick.sql.{FixedSqlAction, FixedSqlStreamingAction, SqlAction}
+import slick.sql.FixedSqlAction
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext
+import scala.reflect.ClassTag
 
-class EmployeeStore(val profile: JdbcProfile)(implicit ec: ExecutionContext) {
-  import profile.api._
+class EmployeeStore(val config: DatabaseConfig[JdbcProfile])(implicit ec: ExecutionContext) {
+  import config.profile.api._
+
+  case class Email(address: String)
+
+  implicit def emailColumnType: ColumnType[Email] =
+    MappedColumnType.base(_.address, Email.apply)
+
+  implicit def enumeratumColumnType[A <: EnumEntry: ClassTag](implicit e: Enum[A]): ColumnType[A] =
+    MappedColumnType.base(_.entryName, e.withNameInsensitive)
 
   class EmployeeTable(tag: Tag) extends Table[Employee](tag, "employees") {
     val birthDate = column[LocalDate]("birth_date")
     val firstName = column[String]("first_name")
     val lastName = column[String]("last_name")
-    val gender = column[Char]("gender")
+    val gender = column[Gender]("gender")
     val hireDate = column[LocalDate]("hire_date")
-    val employeeNumber = column[Int]("emp_no", O.PrimaryKey, O.AutoInc)
+    val employeeNumber = column[EmployeeNumber]("emp_no", O.PrimaryKey, O.AutoInc)
 
     val * = (
       birthDate,
@@ -30,7 +41,7 @@ class EmployeeStore(val profile: JdbcProfile)(implicit ec: ExecutionContext) {
   val EmployeeTable = TableQuery[EmployeeTable]
 
   class SalaryTable(tag: Tag) extends Table[Salary](tag, "salaries") {
-    val employeeNumber = column[Int]("emp_no")
+    val employeeNumber = column[EmployeeNumber]("emp_no")
     val amount = column[Int]("salary")
     val fromDate = column[LocalDate]("from_date")
     val toDate = column[LocalDate]("to_date")
@@ -63,17 +74,19 @@ class EmployeeStore(val profile: JdbcProfile)(implicit ec: ExecutionContext) {
       .to[Vector]
       .result
 
-  def findEmployeesByPartialName(str: String): DBIO[Vector[Employee]] =
+  def listEmployeesByName(str: String, offset: Int, limit: Int): DBIO[Vector[Employee]] =
     EmployeeTable
       .filter { table =>
         val pattern = "%" + str.toLowerCase.replaceAll("([%_])", "\\\\$1") + "%"
         table.firstName.toLowerCase.like(pattern) ||
         table.lastName.toLowerCase.like(pattern)
       }
+      .drop(offset)
+      .take(limit)
       .to[Vector]
       .result
 
-  def countEmployeesByPartialName(str: String): Rep[Int] =
+  def countEmployeesByName(str: String): DBIO[Int] =
     EmployeeTable
       .filter { table =>
         val pattern = "%" + str.toLowerCase.replaceAll("([%_])", "\\\\$1") + "%"
@@ -81,8 +94,9 @@ class EmployeeStore(val profile: JdbcProfile)(implicit ec: ExecutionContext) {
         table.lastName.toLowerCase.like(pattern)
       }
       .length
+      .result
 
-  def allEmployeeNumbers: DBIO[Vector[Int]] =
+  def allEmployeeNumbers: DBIO[Vector[EmployeeNumber]] =
     EmployeeTable
       .map(table => table.employeeNumber)
       .to[Vector]
@@ -121,19 +135,19 @@ class EmployeeStore(val profile: JdbcProfile)(implicit ec: ExecutionContext) {
       .to[Vector]
       .result
 
-  def findEmployee(num: Int): DBIO[Option[Employee]] =
+  def findEmployee(num: EmployeeNumber): DBIO[Option[Employee]] =
     EmployeeTable
       .filter(table => table.employeeNumber === num)
       .take(1)
       .result
       .headOption
 
-  def hireGarfieldTheCat: DBIO[Int] =
+  def hireGarfieldTheCat: DBIO[EmployeeNumber] =
     EmployeeTable.returning(EmployeeTable.map(_.employeeNumber)) += Employee(
       LocalDate.of(1975, 1, 1),
       "Garfield",
       "Arbuckle",
-      'm',
+      Gender.Male,
       LocalDate.now,
     )
 
@@ -156,20 +170,20 @@ class EmployeeStore(val profile: JdbcProfile)(implicit ec: ExecutionContext) {
     allTheTables.sortBy { case (emp, sal) => emp.lastName }
   }
 
-  def sumOfAllSalaryRecords: FixedSqlAction[Option[Long], profile.api.NoStream, Effect.Read] =
+  def sumOfAllSalaryRecords: FixedSqlAction[Option[Long], NoStream, Effect.Read] =
     SalaryTable
       .map(_.amount.asColumnOf[Long])
       .sum
       .result
 
-  def totalPayrollOnDate(date: LocalDate): FixedSqlAction[Option[Long], profile.api.NoStream, Effect.Read] =
+  def totalPayrollOnDate(date: LocalDate): FixedSqlAction[Option[Long], NoStream, Effect.Read] =
     SalaryTable
       .filter(sal => sal.fromDate <= date && sal.toDate > date)
       .map(_.amount.asColumnOf[Long])
       .sum
       .result
 
-  def maxSalaryByEmployeeNumber: Query[(Rep[Int], Rep[Option[Int]]), (Int, Option[Int]), Seq] =
+  def maxSalaryByEmployeeNumber: Query[(Rep[EmployeeNumber], Rep[Option[Int]]), (EmployeeNumber, Option[Int]), Seq] =
     SalaryTable
       .groupBy(sal => sal.employeeNumber)
       .map { case (empNo, sal) => (empNo, sal.map(_.amount).max) }
@@ -191,7 +205,7 @@ class EmployeeStore(val profile: JdbcProfile)(implicit ec: ExecutionContext) {
       }
   }
 
-  def employeeBirthday(employeeNumber: Int, age: Int): DBIOAction[Option[LocalDate], NoStream, Effect.Read] =
+  def employeeBirthday(employeeNumber: EmployeeNumber, age: Int): DBIOAction[Option[LocalDate], NoStream, Effect.Read] =
     // There are many uses of the name `map` below:
     EmployeeTable
       .filter(emp => emp.employeeNumber === employeeNumber)
@@ -209,7 +223,7 @@ class EmployeeStore(val profile: JdbcProfile)(implicit ec: ExecutionContext) {
           .map(_.plusYears(age))
       }
 
-  def allEmployeeBirthdays(employeeNumbers: Set[Int], age: Int): DBIO[Map[Int, LocalDate]] =
+  def allEmployeeBirthdays(employeeNumbers: Set[EmployeeNumber], age: Int): DBIO[Map[EmployeeNumber, LocalDate]] =
     EmployeeTable
       .filter(emp => emp.employeeNumber.inSet(employeeNumbers))
       .map(emp => (emp.employeeNumber, emp.birthDate))
@@ -221,7 +235,7 @@ class EmployeeStore(val profile: JdbcProfile)(implicit ec: ExecutionContext) {
           .toMap
       }
 
-  def capitaliseName(employeeNumber: Int): DBIO[Int] = {
+  def capitaliseName(employeeNumber: EmployeeNumber): DBIO[Int] = {
     val query: Query[(Rep[String], Rep[String]), (String, String), Seq] =
       EmployeeTable
         .filter(emp => emp.employeeNumber === employeeNumber)
@@ -264,10 +278,20 @@ class EmployeeStore(val profile: JdbcProfile)(implicit ec: ExecutionContext) {
     action.andThen(DBIO.failed(new Exception("OH NO!"))).transactionally
   }
 
-//  def pagedEmployeesByName(pattern: String, offset: Int, limit: Int): DBIO[(Seq[Employee], Int)] =
-//    for {
-//      employees <- listEmployeesByName(pattern, offset, limit)
-//      total     <- countEmployeesByName(pattern)
-//    } yield (employees, total)
+  def pagedEmployeesByName(pattern: String, offset: Int, limit: Int): DBIO[(Seq[Employee], Int)] =
+    for {
+      employees <- listEmployeesByName(pattern, offset, limit)
+      total     <- countEmployeesByName(pattern)
+    } yield (employees, total)
 
+  // Scala mirror for the MySQL function `unix_timestamp(date) -> int`:
+  val unixTimestamp: Rep[LocalDate] => Rep[Long] =
+    SimpleFunction.unary[LocalDate, Long]("unix_timestamp")
+
+  def employeeBirthdayTimestamp(employeeNumber: EmployeeNumber): DBIO[Option[Long]] =
+    EmployeeTable
+      .filter(_.employeeNumber === employeeNumber)
+      .map(emp => unixTimestamp(emp.birthDate))
+      .result
+      .headOption
 }

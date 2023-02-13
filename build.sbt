@@ -11,6 +11,7 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 val commonDependencies = Seq(
   "com.typesafe.slick" %% "slick"           % "3.4.1",
   "ch.qos.logback"      % "logback-classic" % "1.4.5",
+  "com.beachape"       %% "enumeratum"      % "1.7.2",
 )
 
 val h2Dependencies = Seq(
@@ -19,6 +20,11 @@ val h2Dependencies = Seq(
 
 val mysqlDependencies = Seq(
   "mysql" % "mysql-connector-java" % "8.0.13",
+)
+
+val akkaStreamsDependencies = Seq(
+  "com.lightbend.akka" %% "akka-stream-alpakka-slick" % "5.0.0",
+  "com.typesafe.akka"  %% "akka-stream"               % "2.7.0"
 )
 
 lazy val example = project
@@ -30,5 +36,5 @@ lazy val example = project
 lazy val exercise = project
   .in(file("exercise"))
   .settings(
-    libraryDependencies ++= commonDependencies ++ mysqlDependencies
+    libraryDependencies ++= commonDependencies ++ mysqlDependencies ++ akkaStreamsDependencies
   )
