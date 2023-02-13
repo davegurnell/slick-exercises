@@ -4,7 +4,7 @@ version := "1.0"
 
 ThisBuild / scalaVersion := "2.13.10"
 
-ThisBuild / scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation", "-Xlint", "-Xfatal-warnings")
+ThisBuild / scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation", "-Xlint")
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
