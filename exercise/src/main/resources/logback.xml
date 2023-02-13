@@ -9,10 +9,10 @@
   <logger level="WARN" name="slick" />
 
   <!-- Set this to DEBUG to see SQL statements in the log -->
-  <logger level="WARN" name="slick.jdbc.JdbcBackend.statement" />
+  <logger level="DEBUG" name="slick.jdbc.JdbcBackend.statement" />
 
   <!-- Set this to DEBUG to see parameters to SQL statements in the log -->
-  <logger level="WARN" name="slick.jdbc.JdbcBackend.parameter" />
+  <logger level="DEBUG" name="slick.jdbc.JdbcBackend.parameter" />
 
   <!-- Set this to DEBUG to see query results in the log -->
   <logger level="WARN" name="slick.jdbc.StatementInvoker.result" />
